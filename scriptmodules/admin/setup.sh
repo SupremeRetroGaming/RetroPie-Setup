@@ -79,9 +79,9 @@ function depends_setup() {
         printMsgs "dialog" "WARNING: You have the experimental desktop GL driver enabled. This is NOT supported by RetroPie, and Emulation Station as well as emulators may fail to launch.\n\nPlease disable the experimental desktop GL driver from the raspi-config 'Advanced Options' menu."
     fi
 
-    if isPlatform "rpi" && isPlatform "64bit"; then
-        printMsgs "dialog" "WARNING: 64bit support on the Raspberry Pi is not yet officially supported, although the main emulator package selection should work ok."
-    fi
+    ##if isPlatform "rpi" && isPlatform "64bit"; then
+        ##printMsgs "dialog" "WARNING: 64bit support on the Raspberry Pi is not yet officially supported, although the main emulator package selection should work ok."
+    ##fi
 
     if [[ "$__os_debian_ver" -eq 8 ]]; then
         printMsgs "dialog" "Raspbian/Debian Jessie and versions of Ubuntu below 18.04 are no longer supported.\n\nPlease install RetroPie from a fresh image (or if running Ubuntu, upgrade your OS)."
@@ -650,7 +650,7 @@ function packages_gui_setup() {
 function uninstall_setup()
 {
     dialog --defaultno --yesno "Are you sure you want to uninstall RetroPie?" 22 76 2>&1 >/dev/tty || return 0
-    dialog --defaultno --colors --yesno "Are you \ZbREALLY\Zn sure you want to uninstall RetroPie?\n\nThe \Z4\Zb$rootdir\Zn folder will be removed - this includes configuration files for all RetroPie components. If you wish to keep any config files of the emulators/ports that RetroPie used, then choose \ZrNo\Zn now and save it first." 22 76 2>&1 >/dev/tty || return 0
+    dialog --defaultno --yesno "Are you REALLY sure you want to uninstall RetroPie?\n\n$rootdir will be removed - this includes configuration files for all RetroPie components." 22 76 2>&1 >/dev/tty || return 0
     clear
     printHeading "Uninstalling RetroPie"
     for id in "${__mod_id[@]}"; do

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+ 
 # This file is part of The RetroPie Project
 #
 # The RetroPie Project is the legal property of its developers, whose names are
@@ -11,25 +11,20 @@
 
 rp_module_id="supermodel3"
 rp_module_desc="Super Model 3 Emulator"
-rp_module_help="Copy your Sega Model 3 roms to $romdir/arcade"
+rp_module_help="ROM Addition: Copy your roms to $romdir/arcade"
 rp_module_licence="GPL3 https://raw.githubusercontent.com/DirtBagXon/model3emu-code-sinden/main/Docs/LICENSE.txt"
-rp_module_repo="git https://github.com/DirtBagXon/model3emu-code-sinden.git :_get_branch_supermodel3"
+rp_module_repo="git https://github.com/DirtBagXon/model3emu-code-sinden.git arm"
 rp_module_section="exp"
-rp_module_flags="all !armv6 !armv7"
-
-function _get_branch_supermodel3() {
-    if isPlatform "x86"; then
-        echo "main"
-    else
-        echo "arm"
-    fi
-}
+rp_module_flags="sdl2"
 
 function depends_supermodel3() {
-    local depends=(libsdl2-dev libsdl2-net-dev libxi-dev libglu1-mesa-dev)
-    # on KMS we need x11 to start the emulator
-    isPlatform "kms" && depends+=(xorg matchbox-window-manager)
-    getDepends "${depends[@]}"
+
+    getDepends xinit libsdl2-dev libsdl2-net-dev libsdl2-net-2.0-0 x11-xserver-utils xserver-xorg
+    aptRemove xserver-xorg-legacy
+
+    if [[ "$__os_debian_ver" -eq 12 ]]; then
+        getDepends gldriver-test
+    fi
 }
 
 function sources_supermodel3() {
@@ -37,62 +32,56 @@ function sources_supermodel3() {
 }
 
 function build_supermodel3() {
-    make -f Makefiles/Makefile.UNIX clean
-    make -f Makefiles/Makefile.UNIX NET_BOARD=1 VERBOSE=1 ARCH="" OPT="$__default_cflags"
-    md_ret_require="bin/supermodel"
+    cp Makefiles/Makefile.UNIX Makefile
+    make clean
+    make NET_BOARD=1
+    cp Docs/LICENSE.txt LICENSE
+    cp bin/supermodel supermodel3
+    md_ret_require="supermodel3"
 }
 
 function install_supermodel3() {
     md_ret_files=(
-        'bin/supermodel'
+        'supermodel3'
         'Config'
-        'Docs/LICENSE.txt'
-        'Docs/README.txt'
+        'LICENSE'
     )
 }
 
 function configure_supermodel3() {
 
     mkRomDir "arcade"
+
+    local allemu="/opt/retropie/configs/all/emulators.cfg"
+
+    addEmulator 0 "$md_id" "arcade" "XINIT:$md_inst/$md_id -borders=2 %ROM%"
     addSystem "arcade"
-
-    local game_args="-vsync"
-    local launch_prefix=""
-    # launch the emulator with an X11 backend, has better scaling and mouse/lightgun support
-    isPlatform "kms" && launch_prefix="XINIT:"
-
-    addEmulator 0 "$md_id" "arcade" "${launch_prefix}$md_inst/supermodel.sh %ROM% $game_args"
-    addEmulator 0 "$md_id-scaled" "arcade" "${launch_prefix}$md_inst/supermodel.sh %ROM% $game_args -res=%XRES%,%YRES%"
-    if isPlatform "x86"; then
-        # add a legacy3d entry for less powerful PC systems
-        addEmulator 0 "$md_id-legacy3d" "arcade" "$md_inst/supermodel.sh %ROM% -legacy3d $game_args"
-    fi
 
     [[ "$md_mode" == "remove" ]] && return
 
-    local conf_dir="$md_conf_root/arcade/supermodel3"
-    mkUserDir "$conf_dir"
-    mkUserDir "$conf_dir/NVRAM"
-    mkUserDir "$conf_dir/Saves"
-    mkUserDir "$conf_dir/Config"
+    mkUserDir "$md_conf_root/$md_id"
+    mkUserDir "$md_conf_root/$md_id/Saves"
+    mkUserDir "$md_conf_root/$md_id/NVRAM"
 
-    # on upgrades keep the local config, but overwrite the game configs
-    copyDefaultConfig "$md_inst/Config/Supermodel.ini" "$conf_dir/Config/Supermodel.ini"
-    cp -f "$md_inst/Config/Games.xml" "$conf_dir/Config/"
-    chown -R "$user:$user" "$conf_dir"
+    ln -snf "$md_conf_root/$md_id/NVRAM" "$md_inst/NVRAM"
+    ln -snf "$md_conf_root/$md_id/NVRAM" "$home/NVRAM"
+    ln -snf "$md_conf_root/$md_id/Saves" "$md_inst/Saves"
+    ln -snf "$md_conf_root/$md_id/Saves" "$home/Saves"
+    ln -snf "$md_conf_root/$md_id" "$home/Config"
+    ln -snf "$md_conf_root/$md_id" "$md_inst/LocalConfig"
+    ln -snf "$md_conf_root/$md_id" "$home/LocalConfig"
 
-    cat >"$md_inst/supermodel.sh" <<_EOF_
-#!/usr/bin/env bash
+    copyDefaultConfig "$md_inst/Config/Supermodel.ini" "$md_conf_root/$md_id/Supermodel.ini"
+    copyDefaultConfig "$md_inst/Config/Games.xml" "$md_conf_root/$md_id/Games.xml"
 
-commands="\${1%.*}.commands"
+    local rom
+    for rom in lostwsga lamachin oceanhun swtrilgy; do
+          if ! grep -q "arcade_$rom" "$allemu"; then
+             addLineToFile "arcade_$rom = \"$md_id\"" $allemu
+          fi
+    done
 
-if [[ -f "\$commands" ]]; then
-    params=\$(<"\$commands" tr -d '\r' | tr '\n' ' ')
-fi
-
-pushd $conf_dir
-$md_inst/supermodel "\$@" \$params
-popd
-_EOF_
-    chmod +x "$md_inst/supermodel.sh"
+    rm -rf "$md_inst/Config"
+    chown -R $user:$user "$md_inst"
+    chown -R $user:$user "$md_conf_root/$md_id"
 }

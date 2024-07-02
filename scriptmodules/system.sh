@@ -145,6 +145,12 @@ function conf_build_vars() {
     export ASFLAGS="$__asflags"
     export MAKEFLAGS="$__makeflags"
 
+    # if using distcc, add /usr/lib/distcc to PATH/MAKEFLAGS
+    if [[ -n "$DISTCC_HOSTS" ]]; then
+        PATH="/usr/lib/distcc:$PATH"
+        MAKEFLAGS+=" PATH=$PATH"
+    fi
+
     # if __use_ccache is set, then add ccache to PATH/MAKEFLAGS
     if [[ "$__use_ccache" -eq 1 ]]; then
         PATH="/usr/lib/ccache:$PATH"
@@ -184,7 +190,7 @@ function get_os_version() {
 
             # 64bit Raspberry Pi OS identifies as Debian, but functions (currently) as Raspbian
             # we will check package sources and set to Raspbian
-            if isPlatform "aarch64" && apt-cache policy | grep -qE "archive.raspberrypi.(com|org)"; then
+            if isPlatform "aarch64" && apt-cache policy | grep -q "archive.raspberrypi.org"; then
                 __os_id="Raspbian"
             fi
 
@@ -316,10 +322,6 @@ function get_os_version() {
 
 function get_retropie_depends() {
     local depends=(git subversion dialog curl gcc g++ build-essential unzip xmlstarlet python3-pyudev ca-certificates dirmngr)
-    # on RaspiOS, install an extra package for X11 support on Pi5
-    if isPlatform "rpi5" && [[ "$__os_id" == "Raspbian" ]]; then
-        depends+=(gldriver-test)
-    fi
 
     [[ -n "$DISTCC_HOSTS" ]] && depends+=(distcc)
 
@@ -352,7 +354,7 @@ function get_rpi_video() {
 
     if [[ "$__has_kms" -eq 1 ]]; then
         __platform_flags+=(mesa kms)
-        if ! isPlatform "aarm64" && [[ -z "$__has_dispmanx" ]]; then
+        if [[ -z "$__has_dispmanx" ]]; then
             if [[ "$__chroot" -eq 1 ]]; then
                 # in a chroot default to fkms (supporting dispmanx) when debian is older than 11 (bullseye)
                 [[ "$__os_debian_ver" -lt 11 ]] && __has_dispmanx=1
@@ -362,11 +364,12 @@ function get_rpi_video() {
             fi
         fi
         [[ "$__has_dispmanx" -eq 1 ]] && __platform_flags+=(dispmanx)
+		# Pi4/5 have Vulkan working under KMS on Debian 12 (bookworm) or newer
+        if (isPlatform "rpi4" || isPlatform "rpi5")  && [[ "$__os_debian_ver" -ge 12 ]]; then
+            __platform_flags+=(vulkan)
+        fi  
     else
-        __platform_flags+=(videocore)
-        if ! isPlatform "aarm64"; then
-            __platform_flags+=(dispmanx)
-        fi
+        __platform_flags+=(videocore dispmanx)
     fi
 
     # delete legacy pkgconfig that conflicts with Mesa (may be installed via rpi-update)
