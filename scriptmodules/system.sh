@@ -145,6 +145,12 @@ function conf_build_vars() {
     export ASFLAGS="$__asflags"
     export MAKEFLAGS="$__makeflags"
 
+															
+									 
+									
+								
+	  
+
     # if __use_ccache is set, then add ccache to PATH/MAKEFLAGS
     if [[ "$__use_ccache" -eq 1 ]]; then
         PATH="/usr/lib/ccache:$PATH"
@@ -365,6 +371,10 @@ function get_rpi_video() {
             fi
         fi
         [[ "$__has_dispmanx" -eq 1 ]] && __platform_flags+=(dispmanx)
+		# Pi4/5 have Vulkan working under KMS on Debian 12 (bookworm) or newer
+        if (isPlatform "rpi4" || isPlatform "rpi5")  && [[ "$__os_debian_ver" -ge 12 ]]; then
+            __platform_flags+=(vulkan)
+        fi  	
     else
         __platform_flags+=(videocore)
         if ! isPlatform "aarm64"; then
