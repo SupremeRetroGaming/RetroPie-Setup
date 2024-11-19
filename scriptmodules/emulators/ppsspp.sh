@@ -31,6 +31,7 @@ function depends_ppsspp() {
     isPlatform "videocore" && depends+=(libraspberrypi-dev)
     isPlatform "mesa" && depends+=(libgles2-mesa-dev)
     isPlatform "vero4k" && depends+=(vero3-userland-dev-osmc)
+	isPlatform "vulkan" && depends+=(mesa-vulkan-drivers)													  
     getDepends "${depends[@]}"
 }
 
@@ -54,8 +55,13 @@ function sources_ppsspp() {
     sed -n -i "p; s/^set(CMAKE_EXE_LINKER_FLAGS/set(CMAKE_SHARED_LINKER_FLAGS/p" cmake/Toolchains/raspberry.armv?.cmake
 
     # fix missing defines on opengles2 on v1.16.6 lr-ppsspp/ppsspp
-    if [[ "$md_id" == "ppsspp" && "$(_get_release_ppsspp)" == "v1.16.6" ]]; then
+    if [[ "$md_id" =~ ^(lr-)?ppsspp$ && "$(_get_release_ppsspp)" == "v1.16.6" ]]; then
         applyPatch "${__mod_info[ppsspp/path]%/*}/ppsspp/gles2_fix.diff"
+    fi
+
+    # fix missing exported symbol for libretro on v1.13.2
+    if [[ "$md_id" == "lr-ppsspp" && "$(_get_release_ppsspp)" == "v1.13.2" ]]; then
+        applyPatch "$md_data/v13-libretro_fix.diff"
     fi
 
     if hasPackage cmake 3.6 lt; then
