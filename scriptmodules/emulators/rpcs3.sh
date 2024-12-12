@@ -64,18 +64,18 @@ function install_rpcs3() {
     # Download the PS3 firmware
     download_ps3_firmware
 
-    # Set up the ROMs folder if not already set up
+    # Create +Start RPCS3 script
     echo "Creating the +Start RPCS3 script..."
-    cat > "$PS3_ROMS_DIR/+Start RPCS3.sh" <<EOF
+    cat > "$PS3_ROMS_DIR/RPCS3.sh" <<EOF
 #!/bin/bash
 "/opt/retropie/supplementary/runcommand/runcommand.sh" 0 _SYS_ "ps3" ""
 EOF
 
     # Make sure the start script is executable
-    chmod +x "$PS3_ROMS_DIR/+Start RPCS3.sh"
+    chmod +x "$PS3_ROMS_DIR/RPCS3.sh"
 
     # Ensure the file was created
-    if [[ ! -f "$PS3_ROMS_DIR/+Start RPCS3.sh" ]]; then
+    if [[ ! -f "$PS3_ROMS_DIR/RPCS3.sh" ]]; then
         echo "Error: Failed to create +Start RPCS3.sh script in $PS3_ROMS_DIR"
         exit 1
     fi
@@ -119,7 +119,7 @@ EOF
         <software>RPCS3</software>
     </provider>
     <game>
-        <path>./+Start RPCS3.sh</path>
+        <path>./RPCS3.sh</path>
         <name>+Start RPCS3</name>
         <desc>RPCS3 is a PS3 emulator for Linux. Use it to play PS3 games on your system.</desc>
         <image>./boxart/PS3.png</image>
