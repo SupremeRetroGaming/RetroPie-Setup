@@ -10,15 +10,17 @@ rp_module_flags="!x86"  # Excludes x86 (only for ARM systems)
 RPCS3_VERSION="v0.0.34-17173-68b7e597"
 RPCS3_APPIMAGE_URL="https://github.com/RPCS3/rpcs3-binaries-linux-arm64/releases/download/build-68b7e5971d8e279d7d385b96b5aa2feebd220506/rpcs3-${RPCS3_VERSION}_linux_aarch64.AppImage"
 RPCS3_APPIMAGE_NAME="rpcs3-${RPCS3_VERSION}_linux_aarch64.AppImage"
-PS3_ROMS_DIR="/home/pi/RetroPie/roms/ps3"
-PS3_SCRIPTMODULES_EMU_DIR="/home/pi/RetroPie-Setup/scriptmodules/emulators/"
-RPCS3_PATH="/opt/retropie/emulators/rpcs3/"
+PS3_ROMS_DIR="/home/$__user/RetroPie/roms/ps3"
+PS3_BIOS_DIR="/home/$__user/RetroPie/BIOS/ps3"
+PS3_SCRIPTMODULES_EMU_DIR="/home/$__user/RetroPie-Setup/scriptmodules/emulators/"
+RPCS3_PATH="/opt/retropie/emulators/rpcs3"
+RPCS3_ICON_PATH="$RPCS3_PATH/rpcs3.png"
 RPCS3_BOXART_ICON_PATH="$PS3_ROMS_DIR/boxart/PS3.png"
 RPCS3_MARQUEE_PATH="$PS3_ROMS_DIR/marquee/PS3.png"
 RPCS3_SNAP_PATH="$PS3_ROMS_DIR/snap/PS3.mp4"
 PS3_FIRMWARE_URL="http://dus01.ps3.update.playstation.net/update/ps3/image/us/2024_0227_3694eb3fb8d9915c112e6ab41a60c69f/PS3UPDAT.PUP"
 PS3_FIRMWARE_CUSTOM_URL="https://archive.org/download/rebug-cfw/REBUG_4.84.2_REX_0835d81e3c581f3bdfdfbe86fca5e192_PS3UPDAT.PUP"
-PS3_FIRMWARE_PATH="/home/pi/RetroPie/BIOS/ps3/PS3UPDAT.PUP"
+PS3_FIRMWARE_PATH="$PS3_BIOS_DIR/PS3UPDAT.PUP"
 
 # Function to handle dependencies
 function depends_rpcs3() {
@@ -33,7 +35,7 @@ function sources_rpcs3() {
 # Function to download the PS3 firmware
 function download_ps3_firmware() {
     # Create the directory for PS3 firmware if it does not exist
-    mkdir -p "/home/pi/RetroPie/BIOS/ps3"
+    mkdir -p "$PS3_BIOS_DIR"
 
     # Check if the firmware is already downloaded
     if [[ -f "$PS3_FIRMWARE_PATH" ]]; then
@@ -45,11 +47,15 @@ function download_ps3_firmware() {
     echo "Downloading PS3 firmware..."
     wget -O "$PS3_FIRMWARE_PATH" "$PS3_FIRMWARE_URL" || { echo "Failed to download PS3 firmware"; exit 1; }
     echo "PS3 firmware downloaded to $PS3_FIRMWARE_PATH"
+
+    # Ensure all files in PS3 BIOS DIR are owned by the pi user
+    echo "Ensuring ownership of PS3 BIOS DIR by pi user..."
+    chown -R pi:pi "$PS3_BIOS_DIR"	
 }
 
 function download_custom_ps3_firmware() {
     # Create the directory for PS3 firmware if it does not exist
-    mkdir -p "/home/pi/RetroPie/BIOS/ps3"
+    mkdir -p "$PS3_BIOS_DIR"
 
     # Check if the firmware is already downloaded
     if [[ -f "$PS3_FIRMWARE_PATH" ]]; then
@@ -61,6 +67,10 @@ function download_custom_ps3_firmware() {
     echo "Downloading PS3 custom firmware..."
     wget -O "$PS3_FIRMWARE_PATH" "$PS3_FIRMWARE_CUSTOM_URL" || { echo "Failed to download PS3 custom firmware"; exit 1; }
     echo "PS3 custom firmware downloaded to $PS3_FIRMWARE_PATH"
+
+    # Ensure all files in PS3 BIOS DIR are owned by the pi user
+    echo "Ensuring ownership of PS3 BIOS DIR by pi user..."
+    chown -R pi:pi "$PS3_BIOS_DIR"	
 }
 
 # Function to install RPCS3
@@ -102,7 +112,7 @@ EOF
     # Copy the icons and snaps from the RetroPie-Setup scriptmodules RPCS3 directory
     echo "Copying RPCS3 icon to RPCS3 directory..."
     if [[ ! -f "$RPCS3_ICON_PATH" ]]; then
-        cp "$PS3_SCRIPTMODULES_EMU_DIR/rpcs3/boxart/PS3.png" "$RPCS3_PATH/rpcs3.png"
+        cp "$PS3_SCRIPTMODULES_EMU_DIR/rpcs3/boxart/PS3.png" "$RPCS3_ICON_PATH"
         echo "RPCS3 icon copied to $RPCS3_ICON_PATH"
     fi
 
@@ -156,7 +166,7 @@ EOF
     fi
 
     # Ensure all files in PS3_ROMS_DIR are owned by the pi user
-    echo "Ensuring ownership of PS3_ROMS_DIR by pi user..."
+    echo "Ensuring ownership of PS3 ROMS DIR by pi user..."
     chown -R pi:pi "$PS3_ROMS_DIR"
 
     # Add emulator entry to es_systems.cfg if not already present
@@ -191,7 +201,7 @@ EOF
 
 # Function to clear RPCS3 cache
 function clear_rpcs3_cache() {
-    local cache_dir="/home/pi/.cache/rpcs3/"
+    local cache_dir="/home/$__user/.cache/rpcs3/"
 
     # Check if the cache directory exists
     if [[ -d "$cache_dir" ]]; then
@@ -227,7 +237,7 @@ function clear_rpcs3_cache() {
 }
 
 function clear_rpcs3_config() {
-    local config_dir="/home/pi/.config/rpcs3"
+    local config_dir="/home/$__user/.config/rpcs3"
     
     # Check if the config directory exists
     if [[ -d "$config_dir" ]]; then
