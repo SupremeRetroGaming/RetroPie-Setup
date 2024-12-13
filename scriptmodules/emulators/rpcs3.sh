@@ -17,11 +17,12 @@ RPCS3_BOXART_ICON_PATH="$PS3_ROMS_DIR/boxart/PS3.png"
 RPCS3_MARQUEE_PATH="$PS3_ROMS_DIR/marquee/PS3.png"
 RPCS3_SNAP_PATH="$PS3_ROMS_DIR/snap/PS3.mp4"
 PS3_FIRMWARE_URL="http://dus01.ps3.update.playstation.net/update/ps3/image/us/2024_0227_3694eb3fb8d9915c112e6ab41a60c69f/PS3UPDAT.PUP"
+PS3_FIRMWARE_CUSTOM_URL="https://archive.org/download/rebug-cfw/REBUG_4.84.2_REX_0835d81e3c581f3bdfdfbe86fca5e192_PS3UPDAT.PUP"
 PS3_FIRMWARE_PATH="/home/pi/RetroPie/BIOS/ps3/PS3UPDAT.PUP"
 
 # Function to handle dependencies
 function depends_rpcs3() {
-    getDepends libfuse2 libsdl2-dev libvulkan1 dialog
+    getDepends libfuse2 libsdl2-dev libvulkan1 dialog matchbox
 }
 
 # Function to handle the download of RPCS3 AppImage
@@ -35,13 +36,31 @@ function download_ps3_firmware() {
     mkdir -p "/home/pi/RetroPie/BIOS/ps3"
 
     # Check if the firmware is already downloaded
-    if [[ ! -f "$PS3_FIRMWARE_PATH" ]]; then
-        echo "Downloading PS3 firmware..."
-        wget -O "$PS3_FIRMWARE_PATH" "$PS3_FIRMWARE_URL" || { echo "Failed to download PS3 firmware"; exit 1; }
-        echo "PS3 firmware downloaded to $PS3_FIRMWARE_PATH"
-    else
-        echo "PS3 firmware already downloaded at $PS3_FIRMWARE_PATH"
+    if [[ -f "$PS3_FIRMWARE_PATH" ]]; then
+        echo "Removing existing PS3 firmware at $PS3_FIRMWARE_PATH..."
+        rm -f "$PS3_FIRMWARE_PATH" || { echo "Failed to remove existing firmware"; exit 1; }
     fi
+
+    # Download the PS3 firmware
+    echo "Downloading PS3 firmware..."
+    wget -O "$PS3_FIRMWARE_PATH" "$PS3_FIRMWARE_URL" || { echo "Failed to download PS3 firmware"; exit 1; }
+    echo "PS3 firmware downloaded to $PS3_FIRMWARE_PATH"
+}
+
+function download_custom_ps3_firmware() {
+    # Create the directory for PS3 firmware if it does not exist
+    mkdir -p "/home/pi/RetroPie/BIOS/ps3"
+
+    # Check if the firmware is already downloaded
+    if [[ -f "$PS3_FIRMWARE_PATH" ]]; then
+        echo "Removing existing PS3 firmware at $PS3_FIRMWARE_PATH..."
+        rm -f "$PS3_FIRMWARE_PATH" || { echo "Failed to remove existing firmware"; exit 1; }
+    fi
+
+    # Download the custom PS3 firmware
+    echo "Downloading PS3 custom firmware..."
+    wget -O "$PS3_FIRMWARE_PATH" "$PS3_FIRMWARE_CUSTOM_URL" || { echo "Failed to download PS3 custom firmware"; exit 1; }
+    echo "PS3 custom firmware downloaded to $PS3_FIRMWARE_PATH"
 }
 
 # Function to install RPCS3
@@ -62,7 +81,7 @@ function install_rpcs3() {
     mv "$md_build/$RPCS3_APPIMAGE_NAME" "$md_inst/rpcs3.AppImage"
 
     # Download the PS3 firmware
-    download_ps3_firmware
+    download_custom_ps3_firmware
 
     # Create +Start RPCS3 script
     echo "Creating the +Start RPCS3 script..."
@@ -230,21 +249,31 @@ function clear_rpcs3_config() {
 
 # Function to provide a GUI interface for RPCS3 options using dialog
 function gui_rpcs3() {
-    choice=$(dialog --title "RPCS3 Options" --menu "Choose an option" 15 60 3 \
+    choice=$(dialog --title "RPCS3 Options" --menu "Choose an option" 15 60 5 \
         "1" "Clear RPCS3 Cache" \
         "2" "Clear RPCS3 Configs" \
-        "3" "Cancel" 2>&1 >/dev/tty)
+        "3" "Insatll Latest Official Firmware (4.91)" \
+        "4" "Install Custom Firmware (REBUG 4.84.2 REX)" \
+        "5" "Cancel" 2>&1 >/dev/tty)
 
     case $choice in
         1)
-            # Command to launch RPCS3 with GUI
+            # Command to clear RPCS3 cache
             clear_rpcs3_cache
             ;;
         2)
-            # Call the function to clear cache
+            # Call the function to clear configurations
             clear_rpcs3_config
             ;;
         3)
+            # Call the function to download the latest official firmware
+            download_ps3_firmware
+            ;;
+        4)
+            # Function to install custom firmware
+            download_custom_ps3_firmware
+            ;;
+        5)
             echo "Operation canceled."
             ;;
         *)
