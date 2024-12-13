@@ -301,7 +301,7 @@ function configure_rpcs3() {
     if [[ ! -f "$md_inst/rpcs3.sh" ]]; then
         cat > "$md_inst/rpcs3.sh" <<EOF
 #!/bin/bash
-if [[ "\$1" == '' ]]; then
+if [[ "\$1" = *.sh ]]; then
 xset -dpms s off s noblank
 matchbox-window-manager -use_titlebar no &
 /opt/retropie/emulators/rpcs3/rpcs3.AppImage
