@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-#SUPREME TEAM 
+#SUPREME TEAM
+
+# If no user is specified (for RetroPie below v4.8.9)
+if [[ -z "$__user" ]]; then __user="$SUDO_USER"; [[ -z "$__user" ]] && __user="$(id -un)"; fi
 
 rp_module_id="rpcs3"
-rp_module_desc="RPCS3 - PS3 Emulator (AppImage)"
+rp_module_desc="RPCS3 - PS3 Emulator (AppImage)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 \n \n                    *IMPORTANT* \nYou need to CONFIGURE the PS3 FIRMWARE Before Use!\n \nFrom RPCS3 GUI Select File -> Install Firmware -> \n /home/$__user/RetroPie/BIOS/ps3/PS3UPDAT.PUP"
 rp_module_licence="RPCS3 https://rpcs3.net/terms"
-rp_module_section="exp"  # "emulators" section
-rp_module_flags="!x86"  # Excludes x86 (only for ARM systems)
+rp_module_section="exp"  # "Emulators" section
+rp_module_flags="all"
 
-RPCS3_VERSION="v0.0.34-17173-68b7e597"
-RPCS3_APPIMAGE_URL="https://github.com/RPCS3/rpcs3-binaries-linux-arm64/releases/download/build-68b7e5971d8e279d7d385b96b5aa2feebd220506/rpcs3-${RPCS3_VERSION}_linux_aarch64.AppImage"
-RPCS3_APPIMAGE_NAME="rpcs3-${RPCS3_VERSION}_linux_aarch64.AppImage"
+RPCS3_VERSION="v0.0.34-17184-692c88f0"
+RPCS3_BUILD="692c88f0e9447e01b40922d4502ae0fc67470719"
+RPCS3_PLATFORM=linux64; RPCS3_LINUX=''; if isPlatform "aarch64"; then RPCS3_PLATFORM=linux_aarch64; RPCS3_LINUX=-arm64; fi # Handles URL so you should only have to update VERSION and BUILD
+RPCS3_APPIMAGE_URL="https://github.com/RPCS3/rpcs3-binaries-linux${RPCS3_LINUX}/releases/download/build-${RPCS3_BUILD}/rpcs3-${RPCS3_VERSION}_${RPCS3_PLATFORM}.AppImage"
+RPCS3_APPIMAGE_NAME="rpcs3-${RPCS3_VERSION}_${RPCS3_PLATFORM}.AppImage"
 PS3_ROMS_DIR="/home/$__user/RetroPie/roms/ps3"
 PS3_BIOS_DIR="/home/$__user/RetroPie/BIOS/ps3"
 PS3_SCRIPTMODULES_EMU_DIR="/home/$__user/RetroPie-Setup/scriptmodules/emulators/"
@@ -45,12 +50,12 @@ function download_ps3_firmware() {
 
     # Download the PS3 firmware
     echo "Downloading PS3 firmware..."
-    wget -O "$PS3_FIRMWARE_PATH" "$PS3_FIRMWARE_URL" || { echo "Failed to download PS3 firmware"; exit 1; }
+    wget --progress=bar:force -O "$PS3_FIRMWARE_PATH" "$PS3_FIRMWARE_URL" || { echo "Failed to download PS3 firmware"; exit 1; }
     echo "PS3 firmware downloaded to $PS3_FIRMWARE_PATH"
 
     # Ensure all files in PS3 BIOS DIR are owned by the pi user
     echo "Ensuring ownership of PS3 BIOS DIR by pi user..."
-    chown -R pi:pi "$PS3_BIOS_DIR"	
+    chown -R $__user:$__user "$PS3_BIOS_DIR"  
 }
 
 function download_custom_ps3_firmware() {
@@ -65,12 +70,12 @@ function download_custom_ps3_firmware() {
 
     # Download the custom PS3 firmware
     echo "Downloading PS3 custom firmware..."
-    wget -O "$PS3_FIRMWARE_PATH" "$PS3_FIRMWARE_CUSTOM_URL" || { echo "Failed to download PS3 custom firmware"; exit 1; }
+    wget --progress=bar:force -O "$PS3_FIRMWARE_PATH" "$PS3_FIRMWARE_CUSTOM_URL" || { echo "Failed to download PS3 custom firmware"; exit 1; }
     echo "PS3 custom firmware downloaded to $PS3_FIRMWARE_PATH"
 
     # Ensure all files in PS3 BIOS DIR are owned by the pi user
     echo "Ensuring ownership of PS3 BIOS DIR by pi user..."
-    chown -R pi:pi "$PS3_BIOS_DIR"	
+    chown -R $__user:$__user "$PS3_BIOS_DIR"  
 }
 
 # Function to install RPCS3
@@ -91,7 +96,7 @@ function install_rpcs3() {
     mv "$md_build/$RPCS3_APPIMAGE_NAME" "$md_inst/rpcs3.AppImage"
 
     # Download the PS3 firmware
-    download_custom_ps3_firmware
+    download_ps3_firmware
 
     # Create +Start RPCS3 script
     echo "Creating the +Start RPCS3 script..."
@@ -167,7 +172,7 @@ EOF
 
     # Ensure all files in PS3_ROMS_DIR are owned by the pi user
     echo "Ensuring ownership of PS3 ROMS DIR by pi user..."
-    chown -R pi:pi "$PS3_ROMS_DIR"
+    chown -R $__user:$__user "$PS3_ROMS_DIR"
 
     # Add emulator entry to es_systems.cfg if not already present
     echo "Adding emulator entry to es_systems.cfg..."
@@ -295,18 +300,18 @@ function gui_rpcs3() {
 # Function to configure RPCS3 emulator in RetroPie
 function configure_rpcs3() {
     # Add RPCS3 to RetroPie system
-	addEmulator "$md_id" "rpcs3" "ps3" "XINIT: /opt/retropie/emulators/rpcs3/rpcs3.sh %ROM%"
+    addEmulator "$md_id" "rpcs3" "ps3" "XINIT: /opt/retropie/emulators/rpcs3/rpcs3.sh %ROM%"
     addEmulator "$md_id" "rpcs3-wm" "ps3" "XINIT-WM: /opt/retropie/emulators/rpcs3/rpcs3.AppImage %ROM%"
-	addEmulator "$md_id" "rpcs3-no-gui" "ps3" "XINIT-WM: /opt/retropie/emulators/rpcs3/rpcs3.AppImage --no-gui %ROM%"
-	addEmulator "$md_id" "rpcs3-no-wm" "ps3" "XINIT: /opt/retropie/emulators/rpcs3/rpcs3.AppImage %ROM%"
-	
+    addEmulator "$md_id" "rpcs3-no-gui" "ps3" "XINIT-WM: /opt/retropie/emulators/rpcs3/rpcs3.AppImage --no-gui %ROM%"
+    addEmulator "$md_id" "rpcs3-no-wm" "ps3" "XINIT: /opt/retropie/emulators/rpcs3/rpcs3.AppImage %ROM%"
+    
     # Set RPCS3 as the default emulator for PS3
     if [[ $(cat /opt/retropie/configs/ps3/emulators.cfg | grep -q 'default =' ; echo $?) == '1' ]]; then
         echo 'default = "rpcs3"' >> /opt/retropie/configs/ps3/emulators.cfg
     fi
-    sed -i 's/default\ =.*/default\ =\ "rpcs3"/g' /opt/retropie/configs/ps3/emulators.cfg	
-	
-	# Create the rpcs3.sh manually
+    sed -i 's/default\ =.*/default\ =\ "rpcs3"/g' /opt/retropie/configs/ps3/emulators.cfg   
+    
+    # Create the rpcs3.sh manually
     echo "Creating gamelist.xml..."
     if [[ ! -f "$md_inst/rpcs3.sh" ]]; then
         cat > "$md_inst/rpcs3.sh" <<EOF
@@ -323,7 +328,7 @@ fi
 EOF
         echo "rpcs3.sh created at $md_inst"
     fi
-	
+    
     # Make sure the start script is executable
-    chmod +x "$RPCS3_PATH/rpcs3.sh"		
+    chmod +x "$RPCS3_PATH/rpcs3.sh"     
 }
