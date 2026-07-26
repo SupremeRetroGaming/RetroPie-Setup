@@ -43,7 +43,7 @@ rp_module_flags="frontend"
 rp_module_licence="MIT https://github.com/Aloshi/EmulationStation/blob/master/LICENSE"
 
 # ES-X repository
-rp_module_repo="git https://github.com/SupremeRetroGaming/EmulationStation-X main"
+rp_module_repo="git https://github.com/Renetrox/EmulationStation-X main"
 
 # ------------------------------------------------------------
 # Link to base EmulationStation build system
