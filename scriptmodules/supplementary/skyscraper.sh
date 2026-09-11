@@ -192,9 +192,18 @@ function _check_ver_skyscraper() {
     return 0
 }
 
-# List any non-empty systems found in the ROM folder
+# Create intersection of systems configured according to ES frontend
+# and non-empty ROM-folders (~/RetroPie/roms/<platform>/)
 function _list_systems_skyscraper() {
-    find -L "$romdir/" -mindepth 1 -maxdepth 1 -type d -not -empty | sort -u
+    local es_cfg="emulationstation/es_systems.cfg"
+    if [[ -f "$home/.$es_cfg" ]]; then
+        es_cfg="$home/.$es_cfg"
+    else
+        es_cfg="/etc/$es_cfg"
+    fi
+    mapfile set_es < <(xmlstarlet select --template --value-of "/systemList/system/name/text()" "$es_cfg" | sed -e /retropie/d | sort -u)
+    mapfile set_fs < <(find -L "$romdir/" -mindepth 1 -maxdepth 1 -type d -not -empty -printf "%f\n" | sort)
+    comm -1 -2 <(printf '%s' "${set_es[@]}") <(printf '%s' "${set_fs[@]}")
 }
 
 function configure_skyscraper() {
@@ -572,25 +581,27 @@ function gui_skyscraper() {
         [4]=mobygames
         [5]=openretro
         [6]=igdb
-        [7]=worldofspectrum
+        [7]=zxinfo
     )
     s_source+=(
         [10]=esgamelist
         [11]=import
+        [12]=gamebase
     )
 
     s_source_names=(
         [1]=ScreenScraper
-        [2]=ArcadeDB
-        [3]=TheGamesDB
+        [2]="Arcade DB"
+        [3]="TheGames DB"
         [4]=MobyGames
         [5]=OpenRetro
         [6]="Internet Game Database"
-        [7]="World of Spectrum"
+        [7]="ZX-Info"
     )
     s_source_names+=(
         [10]="EmulationStation Gamelist"
-        [11]="Import Folder"
+        [11]="Import Folder (see docs)"
+        [12]="Gamebase DB file (see docs)"
     )
 
     local ver
