@@ -12,6 +12,7 @@
 #  Includes:
 #  - ES-X language files
 #  - Theme Browser previews
+#  - X-TRAS free games catalog
 #  - Skyscraper helper script
 #  - Optional Skyscraper configuration files
 #  - ES-X music folders
@@ -36,7 +37,7 @@ fi
 
 rp_module_id="emulationstation-es-x"
 rp_module_desc="EmulationStation-X (ES-X) - Experimental fork with .ini language and theme enhancements"
-rp_module_help="After installing, ES-X becomes the main frontend.\n\nIncludes:\n- .ini language support\n- Theme Browser previews\n- default ES-X theme\n- Skyscraper integration\n- background music folders\n\nMusic folders:\n$home/RetroPie/music\n$home/.emulationstation/music\n\nRecommended: back up $home/.emulationstation before installing."
+rp_module_help="After installing, ES-X becomes the main frontend.\n\nIncludes:\n- .ini language support\n- Theme Browser previews\n- X-TRAS free games catalog\n- default ES-X theme\n- Skyscraper integration\n- background music folders\n\nMusic folders:\n$home/RetroPie/music\n$home/.emulationstation/music\n\nRecommended: back up $home/.emulationstation before installing."
 rp_module_section="exp"
 rp_module_flags="frontend"
 
@@ -68,12 +69,62 @@ function build_emulationstation-es-x() {
 }
 
 function install_emulationstation-es-x() {
+    esx_backup_original_emulationstation
+
     install_emulationstation
 }
 
 # ------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------
+
+function esx_backup_original_emulationstation() {
+    echo "Backing up existing EmulationStation installation..."
+
+    # Backup RetroPie EmulationStation folder
+    local es_folder="/opt/retropie/supplementary/emulationstation"
+    local es_folder_backup="/opt/retropie/supplementary/emulationstation-org"
+
+    if [[ -d "$es_folder" ]]; then
+        if [[ -e "$es_folder_backup" ]]; then
+            echo "Existing backup found: $es_folder_backup"
+            echo "Leaving existing backup untouched."
+        else
+            echo "Backing up:"
+            echo "$es_folder"
+            echo "to:"
+            echo "$es_folder_backup"
+
+            mv "$es_folder" "$es_folder_backup"
+        fi
+    else
+        echo "No RetroPie EmulationStation folder found."
+    fi
+
+
+    # Backup /usr/bin launcher
+    local es_binary="/usr/bin/emulationstation"
+    local es_binary_backup="/usr/bin/emulationstation-org"
+
+    if [[ -f "$es_binary" ]]; then
+        if [[ -e "$es_binary_backup" ]]; then
+            echo "Existing binary backup found: $es_binary_backup"
+            echo "Leaving existing backup untouched."
+        else
+            echo "Backing up:"
+            echo "$es_binary"
+            echo "to:"
+            echo "$es_binary_backup"
+
+            mv "$es_binary" "$es_binary_backup"
+            chmod 755 "$es_binary_backup"
+        fi
+    else
+        echo "No /usr/bin/emulationstation binary found."
+    fi
+
+    echo "Original EmulationStation backup completed."
+}
 
 function esx_resolve_path() {
     local p
@@ -169,7 +220,7 @@ function esx_install_file_with_backup() {
 
     if [[ -f "$dst" ]]; then
         local bak="${dst}.bak.$(date +%Y%m%d-%H%M%S)"
-        echo "Existing $label found â€” backing up to $(basename "$bak")"
+        echo "Existing $label found — backing up to $(basename "$bak")"
         cp -f "$dst" "$bak"
         chmod 644 "$bak"
         esx_chown "$bak"
@@ -322,6 +373,34 @@ function esx_install_theme_previews() {
     fi
 }
 
+function esx_install_xtras_catalog() {
+    echo "Installing ES-X X-TRAS free games catalog..."
+
+    local esx_root="$home/.emulationstation/esx"
+    local catalog_dst="$esx_root/xtras-free-games.ini"
+    local catalog_src=""
+
+    catalog_src="$(esx_resolve_path \
+        "$md_build/esx/xtras-free-games.ini" \
+        "$md_build/resources/esx/xtras-free-games.ini" \
+        "$md_inst/esx/xtras-free-games.ini" \
+        "$md_inst/resources/esx/xtras-free-games.ini" \
+    )"
+
+    if [[ -n "$catalog_src" && -f "$catalog_src" ]]; then
+        mkUserDir "$esx_root"
+
+        # Catalog data belongs to ES-X. Refresh it on install/update.
+        cp -fv "$catalog_src" "$catalog_dst"
+        chmod 644 "$catalog_dst"
+        esx_chown "$catalog_dst"
+
+        echo "X-TRAS catalog installed/updated at $catalog_dst"
+    else
+        echo "WARNING: No 'esx/xtras-free-games.ini' catalog found in ES-X source."
+    fi
+}
+
 function esx_create_music_dirs() {
     echo "Ensuring ES-X music folders exist..."
 
@@ -344,7 +423,7 @@ function esx_create_music_dirs() {
             echo "Copying bundled default music to $music_dir_1..."
             cp -ruv "$music_src"/. "$music_dir_1"/ 2>/dev/null || true
         else
-            echo "Music folder already has files â€” leaving untouched."
+            echo "Music folder already has files — leaving untouched."
         fi
     else
         echo "No bundled music found. Music folders created only."
@@ -412,7 +491,7 @@ function esx_install_theme() {
         esx_chown_recursive "$target"
 
     elif [[ -d "$target" ]]; then
-        echo "Theme folder exists but is not a git repository: $folder â€” leaving untouched."
+        echo "Theme folder exists but is not a git repository: $folder — leaving untouched."
 
     else
         echo "Cloning theme: $folder"
@@ -447,7 +526,7 @@ function esx_apply_default_settings() {
             echo "Default theme '$default_theme' was not found. Leaving ThemeSet unchanged."
         fi
     else
-        echo "Theme already configured by user â€” not changing."
+        echo "Theme already configured by user — not changing."
     fi
 
     # If IMP is installed, avoid two background music systems fighting.
@@ -474,6 +553,7 @@ function configure_emulationstation-es-x() {
     esx_install_skyscraper_helper
     esx_install_skyscraper_config
     esx_install_theme_previews
+    esx_install_xtras_catalog
     esx_create_music_dirs
     esx_install_default_themes
     esx_apply_default_settings
@@ -486,7 +566,45 @@ function configure_emulationstation-es-x() {
 # ------------------------------------------------------------
 
 function remove_emulationstation-es-x() {
+    echo "Removing EmulationStation-X..."
+
+    # Run normal RetroPie removal first
     remove_emulationstation
+
+    echo "Checking for original EmulationStation backups..."
+
+    # Restore RetroPie EmulationStation folder
+    local es_folder="/opt/retropie/supplementary/emulationstation"
+    local es_folder_backup="/opt/retropie/supplementary/emulationstation-org"
+
+    if [[ -d "$es_folder_backup" ]]; then
+        echo "Restoring original EmulationStation folder..."
+        
+        rm -rf "$es_folder"
+        mv "$es_folder_backup" "$es_folder"
+    else
+        echo "No EmulationStation folder backup found."
+    fi
+
+
+    # Restore /usr/bin/emulationstation launcher
+    local es_binary="/usr/bin/emulationstation"
+    local es_binary_backup="/usr/bin/emulationstation-org"
+
+    if [[ -f "$es_binary_backup" ]]; then
+        echo "Restoring original EmulationStation binary..."
+
+        rm -f "$es_binary"
+        mv "$es_binary_backup" "$es_binary_backup" 
+    fi
+
+    # Fix binary restore (rename -org back)
+    if [[ -f "/usr/bin/emulationstation-org" ]]; then
+        mv /usr/bin/emulationstation-org /usr/bin/emulationstation
+        chmod 755 /usr/bin/emulationstation
+    fi
+
+    echo "EmulationStation-X removal complete."
 }
 
 function gui_emulationstation-es-x() {
