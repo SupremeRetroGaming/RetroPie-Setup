@@ -118,6 +118,12 @@ function esx_backup_original_emulationstation() {
 
             mv "$es_binary" "$es_binary_backup"
             chmod 755 "$es_binary_backup"
+    echo "Updating backup launcher path..."
+    sudo sed -i \
+    's|/opt/retropie/supplementary/emulationstation/emulationstation.sh|/opt/retropie/supplementary/emulationstation-org/emulationstation.sh|g' \
+    "$es_binary_backup"
+    chmod 755 "$es_binary_backup"
+
         fi
     else
         echo "No /usr/bin/emulationstation binary found."
@@ -220,7 +226,7 @@ function esx_install_file_with_backup() {
 
     if [[ -f "$dst" ]]; then
         local bak="${dst}.bak.$(date +%Y%m%d-%H%M%S)"
-        echo "Existing $label found — backing up to $(basename "$bak")"
+        echo "Existing $label found â€” backing up to $(basename "$bak")"
         cp -f "$dst" "$bak"
         chmod 644 "$bak"
         esx_chown "$bak"
@@ -423,7 +429,7 @@ function esx_create_music_dirs() {
             echo "Copying bundled default music to $music_dir_1..."
             cp -ruv "$music_src"/. "$music_dir_1"/ 2>/dev/null || true
         else
-            echo "Music folder already has files — leaving untouched."
+            echo "Music folder already has files â€” leaving untouched."
         fi
     else
         echo "No bundled music found. Music folders created only."
@@ -491,7 +497,7 @@ function esx_install_theme() {
         esx_chown_recursive "$target"
 
     elif [[ -d "$target" ]]; then
-        echo "Theme folder exists but is not a git repository: $folder — leaving untouched."
+        echo "Theme folder exists but is not a git repository: $folder â€” leaving untouched."
 
     else
         echo "Cloning theme: $folder"
@@ -526,7 +532,7 @@ function esx_apply_default_settings() {
             echo "Default theme '$default_theme' was not found. Leaving ThemeSet unchanged."
         fi
     else
-        echo "Theme already configured by user — not changing."
+        echo "Theme already configured by user â€” not changing."
     fi
 
     # If IMP is installed, avoid two background music systems fighting.
@@ -593,15 +599,13 @@ function remove_emulationstation-es-x() {
 
     if [[ -f "$es_binary_backup" ]]; then
         echo "Restoring original EmulationStation binary..."
-
+    echo "Restoring launcher path..."
+    sudo sed -i \
+    's|/opt/retropie/supplementary/emulationstation-org/emulationstation.sh|/opt/retropie/supplementary/emulationstation/emulationstation.sh|g' \
+    "$es_binary_backup"
+    chmod 755 "$es_binary_backup"
         rm -f "$es_binary"
-        mv "$es_binary_backup" "$es_binary_backup" 
-    fi
-
-    # Fix binary restore (rename -org back)
-    if [[ -f "/usr/bin/emulationstation-org" ]]; then
-        mv /usr/bin/emulationstation-org /usr/bin/emulationstation
-        chmod 755 /usr/bin/emulationstation
+        mv "$es_binary_backup" "$es_binary" 
     fi
 
     echo "EmulationStation-X removal complete."
