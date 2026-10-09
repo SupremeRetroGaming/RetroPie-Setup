@@ -194,19 +194,42 @@ EOF
         local backup="${file}.bak.$(date +%Y%m%d-%H%M%S)"
         cp -f "$file" "$backup"
 
-        cat > "$file" <<EOF
-<?xml version="1.0"?>
-<config>
-</config>
-EOF
+        # Preserve existing settings instead of replacing the file.
+        local tmpfile="${file}.tmp"
+
+        {
+            if head -n 1 "$file" | grep -q '<?xml'; then
+                head -n 1 "$file"
+                echo "<config>"
+                tail -n +2 "$file"
+            else
+                echo '<?xml version="1.0"?>'
+                echo "<config>"
+                cat "$file"
+            fi
+            echo "</config>"
+        } > "$tmpfile"
+
+        mv "$tmpfile" "$file"
 
         echo "WARNING: Invalid es_settings.cfg detected. Backup created at: $backup"
     fi
 
+    # Add or update the requested setting.
     if grep -q "<$type name=\"$name\"" "$file"; then
         sed -i "s|<$type name=\"$name\" value=\".*\" */>|<$type name=\"$name\" value=\"$value\" />|g" "$file"
     else
-        sed -i "s|</config>|    <$type name=\"$name\" value=\"$value\" />\n</config>|" "$file"
+        sed -i "s|</config>|<$type name=\"$name\" value=\"$value\" />\n</config>|" "$file"
+    fi
+
+    # Ensure ThemeLayout exists; preserve its value if already present.
+    if ! grep -q '<string name="ThemeLayout"' "$file"; then
+        sed -i 's|</config>|<string name="ThemeLayout" value="" />\n</config>|' "$file"
+    fi
+
+    # Ensure HelpIconSet exists; preserve its value if already present.
+    if ! grep -q '<string name="HelpIconSet"' "$file"; then
+        sed -i 's|</config>|<string name="HelpIconSet" value="default" />\n</config>|' "$file"
     fi
 
     esx_chown "$file"
