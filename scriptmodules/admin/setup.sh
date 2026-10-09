@@ -155,6 +155,14 @@ function post_update_setup() {
 function package_setup() {
     local id="$1"
     local default=""
+	
+	# Block the original EmulationStation action menus while ES-X is installed.
+    if [[ ( "$id" == "emulationstation" || "$id" == "emulationstation-dev" ) && -d "/opt/retropie/supplementary/emulationstation-es-x" ]]; then
+        dialog --title "EmulationStation Unavailable" \
+        --msgbox "Please uninstall EmulationStation-X to access the original EmulationStation options.\n\nThe original installation is backed up as emulationstation-org." \
+        12 70 2>&1 >/dev/tty
+        return 0
+    fi
 
     if ! rp_isEnabled "$id"; then
         printMsgs "dialog" "Sorry but package '$id' is not available for your system ($__platform)\n\nPackage flags: ${__mod_info[$id/flags]}\n\nYour $__platform flags: ${__platform_flags[*]}"
